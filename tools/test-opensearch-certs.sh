@@ -18,21 +18,18 @@ for file in \
   }
 done
 
-# Convert MSYS paths to Windows paths for openssl (native Windows binary)
-# openssl on Windows/MSYS requires Windows-style paths
-win_test_dir="$(cygpath -w "$TEST_DIR" 2>/dev/null || echo "$TEST_DIR")"
-
-# Use Windows openssl with Windows paths
-/mingw64/bin/openssl.exe verify \
-  -CAfile "$win_test_dir\\root-ca.pem" \
-  "$win_test_dir\\opensearch-node1.pem" \
-  "$win_test_dir\\opensearch-node2.pem" \
-  "$win_test_dir\\opensearch-admin.pem"
+# Verify certificates using the native OpenSSL installation.
+openssl verify \
+  -CAfile "$TEST_DIR/root-ca.pem" \
+  "$TEST_DIR/opensearch-node1.pem" \
+  "$TEST_DIR/opensearch-node2.pem" \
+  "$TEST_DIR/opensearch-admin.pem"
 
 for name in opensearch-node1 opensearch-node2 opensearch-admin; do
-  subject="$("/mingw64/bin/openssl.exe" x509 -in "$win_test_dir\\$name.pem" -noout -subject)"
-  grep -Fq "CN=$name" <<<"$subject"
+  subject="$(openssl x509 -in "$TEST_DIR/$name.pem" -noout -subject)"
+  grep -Eq "CN[[:space:]]*=[[:space:]]*$name" <<<"$subject"
 done
 
 "$ROOT_DIR/tools/generate-opensearch-certs.sh" "$TEST_DIR" | grep -Fq "already exist"
+
 echo "OpenSearch certificate generation test passed"
